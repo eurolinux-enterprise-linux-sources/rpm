@@ -1,0 +1,41 @@
+From b3e24d420f7ab2ff8bc715f4be1643323e0d67da Mon Sep 17 00:00:00 2001
+From: Florian Festi <ffesti@redhat.com>
+Date: Sun, 14 Oct 2012 10:52:24 +0200
+Subject: [PATCH] Call read() repeatedly to avoid rpm2cpio break on a pipe as
+ input (#802839)
+
+---
+ rpmio/rpmio.c |   17 ++++++++++++++++-
+ 1 files changed, 16 insertions(+), 1 deletions(-)
+
+diff --git a/rpmio/rpmio.c b/rpmio/rpmio.c
+index 6473d55..94ff5e2 100644
+--- a/rpmio/rpmio.c
++++ b/rpmio/rpmio.c
+@@ -765,7 +765,22 @@ static const FDIO_t ufdio = &ufdio_s ;
+ 
+ ssize_t timedRead(FD_t fd, void * bufptr, size_t length)
+ {
+-    return ufdio->read(fd, bufptr, length);
++    ssize_t already_read =0;
++    ssize_t read = 0;
++    char * cbuf = (char *)(bufptr);
++    while (already_read < length) {
++        read = ufdio->read(fd, cbuf+already_read, length-already_read);
++        if (read == 0) {
++            break;
++        } else if (read < 0) {
++            if (errno == EAGAIN || errno == EINTR || errno == EWOULDBLOCK)
++                continue;
++            return read;
++        } else {
++            already_read += read;
++        }
++    }
++    return already_read;
+ }
+ 
+ /* =============================================================== */
+-- 
+1.7.4.4
+

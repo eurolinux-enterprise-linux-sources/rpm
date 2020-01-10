@@ -1,0 +1,26 @@
+diff -up rpm-4.8.0/python/spec-py.c.python-srcheader rpm-4.8.0/python/spec-py.c
+--- rpm-4.8.0/python/spec-py.c.python-srcheader	2009-12-09 15:37:32.000000000 +0200
++++ rpm-4.8.0/python/spec-py.c	2012-03-01 12:59:22.547307473 +0200
+@@ -198,6 +198,14 @@ static PyObject * spec_get_packages(spec
+     return pkgList;
+ }
+ 
++static PyObject * spec_get_source_header(specObject *s, void *closure)
++{
++    rpmSpec spec = s->spec;
++    if (spec->sourceHeader == NULL)
++	initSourceHeader(spec);
++    return makeHeader(spec->sourceHeader);
++}
++
+ static char spec_doc[] = "RPM Spec file object";
+ 
+ static PyGetSetDef spec_getseters[] = {
+@@ -208,6 +216,7 @@ static PyGetSetDef spec_getseters[] = {
+     {"clean",   (getter) spec_get_clean, NULL, NULL },
+     {"buildRoot",   (getter) spec_get_buildroot, NULL, NULL },
+     {"packages", (getter) spec_get_packages, NULL, NULL },
++    {"sourceHeader", (getter) spec_get_source_header, NULL, NULL },
+     {NULL}  /* Sentinel */
+ };
+ 

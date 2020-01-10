@@ -1,0 +1,19 @@
+commit 3d657d5cc22652c71bc15a56b6b4462e228526d6
+Author: Panu Matilainen <pmatilai@redhat.com>
+Date:   Fri May 20 10:05:02 2011 +0300
+
+    -D is for --define, not --predefine (RhBug:706161)
+
+diff --git a/lib/poptALL.c b/lib/poptALL.c
+index 8510d90..9f39d4f 100644
+--- a/lib/poptALL.c
++++ b/lib/poptALL.c
+@@ -153,7 +153,7 @@ struct poptOption rpmcliAllPoptTable[] = {
+  { "debug", 'd', POPT_ARG_VAL|POPT_ARGFLAG_DOC_HIDDEN, &_debug, -1,
+         NULL, NULL },
+ 
+- { "predefine", 'D', POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN, 0, POPT_PREDEFINE,
++ { "predefine", '\0', POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN, 0, POPT_PREDEFINE,
+ 	N_("predefine MACRO with value EXPR"),
+ 	N_("'MACRO EXPR'") },
+  { "define", 'D', POPT_ARG_STRING, 0, 'D',

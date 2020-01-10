@@ -1,0 +1,17 @@
+diff -up rpm-4.8.0/scripts/rpm.daily.cron-secontext rpm-4.8.0/scripts/rpm.daily
+--- rpm-4.8.0/scripts/rpm.daily.cron-secontext	2012-03-02 11:19:03.894485833 +0200
++++ rpm-4.8.0/scripts/rpm.daily	2012-03-02 11:21:55.299138938 +0200
+@@ -4,10 +4,8 @@ tmpfile=`/bin/mktemp /var/log/rpmpkgs.XX
+ /bin/rpm -qa --qf '%{name}-%{version}-%{release}.%{arch}.rpm\n' 2>&1 \
+ 	| /bin/sort > "$tmpfile"
+ 
+-if [ ! -s "$tmpfile" ]; then
+-	rm -f "$tmpfile"
+-	exit 1
++if [ -s "$tmpfile" ]; then
++	cp "$tmpfile" /var/log/rpmpkgs && /bin/chmod 0644 /var/log/rpmpkgs
+ fi
+ 
+-/bin/mv "$tmpfile" /var/log/rpmpkgs
+-/bin/chmod 0644 /var/log/rpmpkgs
++rm -f "$tmpfile"

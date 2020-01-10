@@ -1,0 +1,12 @@
+diff -up rpm-4.8.0/build/parseSpec.c.cond-include rpm-4.8.0/build/parseSpec.c
+--- rpm-4.8.0/build/parseSpec.c.cond-include	2013-08-05 12:04:33.602525107 +0300
++++ rpm-4.8.0/build/parseSpec.c	2013-08-05 12:08:53.017888296 +0300
+@@ -344,7 +343,7 @@ int readLine(rpmSpec spec, int strip)
+ 	spec->readStack = spec->readStack->next;
+ 	free(rl);
+ 	spec->line[0] = '\0';
+-    } else if (rstreqn("%include", s, sizeof("%include")-1)) {
++    } else if (spec->readStack->reading && rstreqn("%include", s, sizeof("%include")-1)) {
+ 	char *fileName, *endFileName, *p;
+ 
+ 	s += 8;

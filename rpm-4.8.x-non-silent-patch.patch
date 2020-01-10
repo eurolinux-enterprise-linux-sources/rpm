@@ -1,0 +1,30 @@
+From 933a3e32dd94c5d54d10c24c55394488824de1f0 Mon Sep 17 00:00:00 2001
+From: Panu Matilainen <pmatilai@redhat.com>
+Date: Thu, 2 Aug 2012 18:16:09 +0300
+Subject: [PATCH] Dont silence patch by default (RhBug:678000, RhBug:773503)
+
+- Unfortunately patch'es idea of "interesting" output is not ideal for
+  our purposes: "patching foo.c" is of little value, but hunks with
+  offsets and fuzz can be important and there's no switch to patch
+  to get exactly what we want. So let it be chatty... build logs are,
+  anyway.
+---
+ macros.in |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/macros.in b/macros.in
+index 974780b..f55dcbe 100644
+--- a/macros.in
++++ b/macros.in
+@@ -365,7 +365,7 @@ package or when debugging this package.\
+ %_default_patch_fuzz	0
+ 
+ #	Default patch flags
+-%_default_patch_flags	-s
++#%_default_patch_flags	-s
+ 
+ #==============================================================================
+ # ---- Build configuration macros.
+-- 
+1.7.4.4
+

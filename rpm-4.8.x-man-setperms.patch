@@ -1,0 +1,29 @@
+--- rpm-4.8.0/doc/rpm.8.orig	2012-10-12 11:23:37.202828650 +0200
++++ rpm-4.8.0/doc/rpm.8	2012-10-12 11:26:44.190874542 +0200
+@@ -836,17 +836,22 @@
+ (existing database is not overwritten), use
+ \fB--rebuilddb\fR to rebuild the database indices from
+ the installed package headers.
+-.SS "SHOWRC"
+-.PP
+-The command
++.SS "MISCELLANEOUS COMMANDS"
+ .PP
++.TP
+ \fBrpm\fR \fB--showrc\fR
+-.PP
+ shows the values \fBrpm\fR will use for all of the
+ options are currently set in
+ \fIrpmrc\fR and
+ \fImacros\fR
+ configuration file(s).
++.TP
++\fBrpm\fR \fB--setperms\fR \fIPACKAGE_NAME\fR
++sets permissions of files in the given package.
++.TP
++\fBrpm\fR \fB--setugids\fR \fIPACKAGE_NAME\fR
++sets user/group ownership of files in the given package.
++
+ .SS "FTP/HTTP OPTIONS"
+ .PP
+ \fBrpm\fR can act as an FTP and/or HTTP client so

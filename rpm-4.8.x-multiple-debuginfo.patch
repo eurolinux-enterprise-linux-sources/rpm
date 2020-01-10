@@ -1,0 +1,71 @@
+From a5076ad25874421c032f7b06e27c9c9023ff7d2d Mon Sep 17 00:00:00 2001
+From: Jan Kratochvil <jan.kratochvil@redhat.com>
+Date: Wed, 7 Mar 2012 11:30:19 +0200
+Subject: [PATCH] Generate debug symlinks for all filenames sharing a build-id
+ (RhBug:641377)
+
+Signed-off-by: Panu Matilainen <pmatilai@redhat.com>
+---
+ scripts/find-debuginfo.sh |   25 +++++++++++++++++++++++++
+ 1 files changed, 25 insertions(+), 0 deletions(-)
+
+diff --git a/scripts/find-debuginfo.sh b/scripts/find-debuginfo.sh
+index 9f5fdd0..57449f7 100644
+--- a/scripts/find-debuginfo.sh
++++ b/scripts/find-debuginfo.sh
+@@ -136,6 +136,23 @@ debug_link()
+   link_relative "$t" "$l" "$RPM_BUILD_ROOT"
+ }
+ 
++# Provide .2, .3, ... symlinks to all filename instances of this build-id.
++make_id_dup_link()
++{
++  local id="$1" file="$2" idfile
++
++  local n=1
++  while true; do
++    idfile=".build-id/${id:0:2}/${id:2}.$n"
++    [ $# -eq 3 ] && idfile="${idfile}$3"
++    if [ ! -L "$RPM_BUILD_ROOT/usr/lib/debug/$idfile" ]; then
++      break
++    fi
++    n=$[$n+1]
++  done
++  debug_link "$file" "/$idfile"
++}
++
+ # Make a build-id symlink for id $1 with suffix $3 to file $2.
+ make_id_link()
+ {
+@@ -149,6 +166,8 @@ make_id_link()
+     return
+   fi
+ 
++  make_id_dup_link "$@"
++
+   [ $# -eq 3 ] && return 0
+ 
+   local other=$(readlink -m "$root_idfile")
+@@ -197,6 +216,9 @@ while read nlinks inum f; do
+   if [ $nlinks -gt 1 ]; then
+     eval linked=\$linked_$inum
+     if [ -n "$linked" ]; then
++      eval id=\$linkedid_$inum
++      make_id_dup_link "$id" "$dn/$(basename $f)"
++      make_id_dup_link "$id" "/usr/lib/debug$dn/$bn" .debug
+       link=$debugfn
+       get_debugfn "$linked"
+       echo "hard linked $link to $debugfn"
+@@ -211,6 +233,9 @@ while read nlinks inum f; do
+   echo "extracting debug info from $f"
+   id=$(/usr/lib/rpm/debugedit -b "$RPM_BUILD_DIR" -d /usr/src/debug \
+ 			      -i -l "$SOURCEFILE" "$f") || exit
++  if [ $nlinks -gt 1 ]; then
++    eval linkedid_$inum=\$id
++  fi
+   if [ -z "$id" ]; then
+     echo >&2 "*** ${strict_error}: No build ID note found in $f"
+     $strict && exit 2
+-- 
+1.7.4.4
+

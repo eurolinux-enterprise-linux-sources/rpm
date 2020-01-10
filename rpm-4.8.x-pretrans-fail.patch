@@ -1,0 +1,42 @@
+diff -up rpm-4.8.0/lib/psm.c.pretrans-fail rpm-4.8.0/lib/psm.c
+--- rpm-4.8.0/lib/psm.c.pretrans-fail	2012-02-15 14:48:41.344179125 +0200
++++ rpm-4.8.0/lib/psm.c	2012-02-15 14:56:15.286535432 +0200
+@@ -503,7 +503,7 @@ static rpmRC runLuaScript(rpmpsm psm, He
+ 
+     if (rpmluaRunScript(lua, script, sname) == 0) {
+ 	rc = RPMRC_OK;
+-    } else if ((stag != RPMTAG_PREIN && stag != RPMTAG_PREUN && stag != RPMTAG_VERIFYSCRIPT)) {
++    } else if ((stag != RPMTAG_PREIN && stag != RPMTAG_PREUN && stag != RPMTAG_VERIFYSCRIPT && stag != RPMTAG_PRETRANS)) {
+ 	warn_only = 1;
+     }
+     umask(oldmask);
+@@ -760,7 +760,7 @@ static rpmRC runScript(rpmpsm psm, Heade
+                    sname, WTERMSIG(psm->sq.status));
+ 	} else {
+ 	    /* filter out "regular" error exits from non-pre scriptlets */
+-	    if ((stag != RPMTAG_PREIN && stag != RPMTAG_PREUN && stag != RPMTAG_VERIFYSCRIPT)) {
++	    if ((stag != RPMTAG_PREIN && stag != RPMTAG_PREUN && stag != RPMTAG_VERIFYSCRIPT && stag != RPMTAG_PRETRANS)) {
+ 		warn_only = 1;
+ 	    }
+ 	    rpmlog(warn_only ? RPMLOG_WARNING : RPMLOG_ERR, 
+diff -up rpm-4.8.0/lib/transaction.c.pretrans-fail rpm-4.8.0/lib/transaction.c
+--- rpm-4.8.0/lib/transaction.c.pretrans-fail	2012-02-15 14:50:23.833579608 +0200
++++ rpm-4.8.0/lib/transaction.c	2012-02-15 14:54:31.031139986 +0200
+@@ -1152,7 +1152,6 @@ static int runTransScripts(rpmts ts, rpm
+     rpmte p;
+     rpmpsm psm;
+     rpmTag progtag = RPMTAG_NOT_FOUND;
+-    int xx;
+ 
+     if (stag == RPMTAG_PRETRANS) {
+ 	progtag = RPMTAG_PRETRANSPROG;
+@@ -1170,7 +1169,8 @@ static int runTransScripts(rpmts ts, rpm
+ 
+     	if (rpmteOpen(p, ts, 0)) {
+ 	    psm = rpmpsmNew(ts, p);
+-	    xx = rpmpsmScriptStage(psm, stag, progtag);
++	    if (rpmpsmScriptStage(psm, stag, progtag))
++		rpmteMarkFailed(p, ts);
+ 	    psm = rpmpsmFree(psm);
+ 	    rpmteClose(p, ts, 0);
+ 	}

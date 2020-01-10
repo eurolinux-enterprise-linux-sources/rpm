@@ -1,0 +1,29 @@
+From 46bb50a70fdd2f1619d673014d31286444978728 Mon Sep 17 00:00:00 2001
+From: Ales Kozumplik <akozumpl@redhat.com>
+Date: Wed, 4 Jan 2012 16:47:04 +0100
+Subject: [PATCH] document -D and -E in man.
+
+---
+ doc/rpm.8 |    6 ++++++
+ 1 files changed, 6 insertions(+), 0 deletions(-)
+
+diff --git a/doc/rpm.8 b/doc/rpm.8
+index 7269ff3..6d76ccf 100644
+--- a/doc/rpm.8
++++ b/doc/rpm.8
+@@ -166,6 +166,12 @@ will be used for dependency checks and any scriptlet(s) (e.g.
+ \fB%prep\fR if building, a package)
+ will be run after a chroot(2) to
+ \fIDIRECTORY\fR.
++.TP
++\fB-D, --define='\fIMACRO EXPR\fB'\fR
++Defines \fIMACRO\fR with value \fIEXPR\fR.
++.TP
++\fB-E, --eval='\fIEXPR\fB'\fR
++Prints macro expansion of \fIEXPR\fR.
+ .SS "INSTALL AND UPGRADE OPTIONS"
+ .PP
+ In these options, \fIPACKAGE_FILE\fR can be either \fBrpm\fR binary
+-- 
+1.7.4.4
+

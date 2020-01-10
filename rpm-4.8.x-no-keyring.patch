@@ -1,0 +1,35 @@
+From cad147070e5513312d851f44998012e8f0cdf1e3 Mon Sep 17 00:00:00 2001
+From: Michael Schroeder <mls@suse.de>
+Date: Mon, 12 Apr 2010 12:09:04 +0200
+Subject: [PATCH] Do not load keyring if signature checking is disabled.
+
+---
+ lib/package.c |    8 ++++++--
+ 1 files changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/lib/package.c b/lib/package.c
+index d1c73bd..90e4f9c 100644
+--- a/lib/package.c
++++ b/lib/package.c
+@@ -760,12 +760,16 @@ exit:
+ rpmRC rpmReadPackageFile(rpmts ts, FD_t fd, const char * fn, Header * hdrp)
+ {
+     rpmRC rc;
+-    rpmKeyring keyring = rpmtsGetKeyring(ts, 1);
+     rpmVSFlags vsflags = rpmtsVSFlags(ts);
++    rpmKeyring keyring = 0;
++
++    if ((vsflags & _RPMVSF_NOSIGNATURES) != _RPMVSF_NOSIGNATURES)
++	keyring = rpmtsGetKeyring(ts, 1);
+ 
+     rc = rpmpkgRead(keyring, vsflags, fd, fn, hdrp);
+ 
+-    rpmKeyringFree(keyring);
++    if (keyring)
++	rpmKeyringFree(keyring);
+     return rc;
+ }
+ 
+-- 
+1.7.4.4
+

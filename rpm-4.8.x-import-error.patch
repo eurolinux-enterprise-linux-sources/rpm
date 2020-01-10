@@ -1,0 +1,33 @@
+diff -up rpm-4.8.0/lib/rpmchecksig.c.import-error rpm-4.8.0/lib/rpmchecksig.c
+--- rpm-4.8.0/lib/rpmchecksig.c.import-error	2012-10-30 12:53:11.335380876 +0200
++++ rpm-4.8.0/lib/rpmchecksig.c	2012-10-30 12:53:11.402380665 +0200
+@@ -419,8 +419,8 @@ static int doImport(rpmts ts, const char
+     int res = 0;
+     int keyno = 1;
+     char *start = strstr(buf, pgpmark);
+-    
+-    while (start) {
++
++    do {
+ 	uint8_t *pkt = NULL;
+ 	size_t pktlen = 0;
+ 	
+@@ -438,7 +438,7 @@ static int doImport(rpmts ts, const char
+ 	}
+ 	
+ 	/* See if there are more keys in the buffer */
+-	if (start + marklen < buf + blen) {
++	if (start && start + marklen < buf + blen) {
+ 	    start = strstr(start + marklen, pgpmark);
+ 	} else {
+ 	    start = NULL;
+@@ -446,7 +446,8 @@ static int doImport(rpmts ts, const char
+ 
+ 	keyno++;
+ 	free(pkt);
+-    }
++    } while (start != NULL);
++
+     return res;
+ }
+ 

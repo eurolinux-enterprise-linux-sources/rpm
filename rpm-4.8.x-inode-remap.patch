@@ -1,0 +1,103 @@
+    Remap inode numbers to fit into 32bit integer space on build (RhBug:714678)
+    
+    - 64bit inode numbers lose their uniquity when brutally truncated
+      to 32bit integers as we've done so far. This can and will cause rpm
+      (and cpio) to mix up arbitrary file entries as hardlinks and vice versa.
+    - As the only interesting aspect of inode numbers is whether they're
+      equal to something else or not, we dont have to carry the "physical"
+      on-disk value to preserve semantics. So we can just remap the
+      inode numbers to something that fits our 32bit integer tags
+      without causing compatibility complexies with older rpms and
+      cpio (and since we can't handle more than INT32_MAX files in a package
+      anyway, breaking compatibility for this would be just braindead dumb).
+      An extremely simple way to achieve this is to use our
+      build-time file list index as the basis of stored inode number.
+    - Since we flatten the inodes to appear from a single filesystem,
+      we need to also flatten the device numbers to match this. Normal
+      buildroots do not cross fs boundaries but for src.rpm, spec and
+      sources/patches can legitimately come from different filesystems.
+      As we use the actual fs values for build-time hardlink discovery
+      this should correctly handle hardlinks even if packaging crosses
+      fs boundaries.
+    - Based on a patch by Zdenek Pavlas, just further simplified and
+      device remapping added.
+
+diff --git a/build/files.c b/build/files.c
+index c6afac7..9ea13a2 100644
+--- a/build/files.c
++++ b/build/files.c
+@@ -1040,10 +1040,11 @@ static int checkHardLinks(FileList fl)
+     return 0;
+ }
+ 
+-static int seenHardLink(FileList fl, FileListRec flp)
++static int seenHardLink(FileList fl, FileListRec flp, rpm_ino_t *fileid)
+ {
+     for (FileListRec ilp = fl->fileList; ilp < flp; ilp++) {
+ 	if (isHardLink(flp, ilp)) {
++	    *fileid = ilp - fl->fileList;
+ 	    return 1;
+ 	}
+     }
+@@ -1101,6 +1102,8 @@ static void genCpioListAndHeader(FileList fl,
+     }
+ 
+     for (i = 0, flp = fl->fileList; i < fl->fileListRecsUsed; i++, flp++) {
++	rpm_ino_t fileid = flp - fl->fileList;
++
+  	/* Merge duplicate entries. */
+ 	while (i < (fl->fileListRecsUsed - 1) &&
+ 	    rstreq(flp->cpioPath, flp[1].cpioPath)) {
+@@ -1186,7 +1189,7 @@ static void genCpioListAndHeader(FileList fl,
+ 	}
+ 	/* Excludes and dupes have been filtered out by now. */
+ 	if (S_ISREG(flp->fl_mode)) {
+-	    if (flp->fl_nlink == 1 || !seenHardLink(fl, flp)) {
++	    if (flp->fl_nlink == 1 || !seenHardLink(fl, flp, &fileid)) {
+ 		totalFileSize += flp->fl_size;
+ 	    }
+ 	}
+@@ -1208,12 +1211,18 @@ static void genCpioListAndHeader(FileList fl,
+ 	    headerPutUint16(h, RPMTAG_FILERDEVS, &rrdev, 1);
+ 	}
+ 	
+-	{   rpm_dev_t rdev = (rpm_dev_t) flp->fl_dev;
+-	    headerPutUint32(h, RPMTAG_FILEDEVICES, &rdev, 1);
+-	}
+-
+-	{   rpm_ino_t rino = (rpm_ino_t) flp->fl_ino;
++	/*
++	 * To allow rpmbuild to work on filesystems with 64bit inodes numbers,
++	 * remap them into 32bit integers based on filelist index, just
++	 * preserving semantics for determining hardlinks.
++	 * Start at 1 as inode zero as that could be considered as an error.
++	 * Since we flatten all the inodes to appear within a single fs,
++	 * we also need to flatten the devices.
++	 */
++	{   rpm_ino_t rino = fileid + 1;
++	    rpm_dev_t rdev = flp->fl_dev ? 1 : 0;
+ 	    headerPutUint32(h, RPMTAG_FILEINODES, &rino, 1);
++	    headerPutUint32(h, RPMTAG_FILEDEVICES, &rdev, 1);
+ 	}
+ 	
+ 	headerPutString(h, RPMTAG_FILELANGS, flp->langs);
+diff --git a/lib/fsm.c b/lib/fsm.c
+index 22db47a..a98bb63 100644
+--- a/lib/fsm.c
++++ b/lib/fsm.c
+@@ -736,6 +736,7 @@ static int fsmMapAttrs(FSM_t fsm)
+ 
+     /* this check is pretty moot,  rpmfi accessors check array bounds etc */
+     if (fi && i >= 0 && i < rpmfiFC(fi)) {
++	ino_t finalInode = rpmfiFInodeIndex(fi, i);
+ 	mode_t finalMode = rpmfiFModeIndex(fi, i);
+ 	dev_t finalRdev = rpmfiFRdevIndex(fi, i);
+ 	time_t finalMtime = rpmfiFMtimeIndex(fi, i);
+@@ -765,6 +766,7 @@ static int fsmMapAttrs(FSM_t fsm)
+ 	    if ((S_ISCHR(st->st_mode) || S_ISBLK(st->st_mode))
+ 	    && st->st_nlink == 0)
+ 		st->st_nlink = 1;
++	    st->st_ino = finalInode;
+ 	    st->st_rdev = finalRdev;
+ 	    st->st_mtime = finalMtime;
+ 	}

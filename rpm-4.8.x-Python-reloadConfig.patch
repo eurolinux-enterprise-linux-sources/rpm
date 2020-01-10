@@ -1,0 +1,49 @@
+From f07ab5c1afa9b0b7105082a8617ec6a7657fc27e Mon Sep 17 00:00:00 2001
+From: Panu Matilainen <pmatilai@redhat.com>
+Date: Thu, 1 Sep 2011 08:31:04 +0300
+Subject: [PATCH] Add method to reset + reload rpm configuration to python
+ bindings
+
+---
+ python/rpmmodule.c |   18 ++++++++++++++++++
+ 1 files changed, 18 insertions(+), 0 deletions(-)
+
+diff --git a/python/rpmmodule.c b/python/rpmmodule.c
+index d3e664a..2894882 100644
+--- a/python/rpmmodule.c
++++ b/python/rpmmodule.c
+@@ -114,6 +114,22 @@ static PyObject * doLog(PyObject * self, PyObject * args, PyObject *kwds)
+     Py_RETURN_NONE;
+ }
+ 
++static PyObject * reloadConfig(PyObject * self, PyObject * args, PyObject *kwds)
++{
++    char * target = NULL;
++    char * kwlist[] = { "target", NULL };
++    int rc;
++    
++    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|s", kwlist, &target))
++        return NULL;
++
++    rpmFreeMacros(NULL);
++    rpmFreeRpmrc();
++    rc = rpmReadConfigFiles(NULL, target) ;
++
++    return PyBool_FromLong(rc == 0);
++}
++
+ static PyMethodDef rpmModuleMethods[] = {
+     { "addMacro", (PyCFunction) rpmmacro_AddMacro, METH_VARARGS|METH_KEYWORDS,
+ 	NULL },
+@@ -148,6 +164,8 @@ static PyMethodDef rpmModuleMethods[] = {
+ 	NULL },
+     { "setStats", (PyCFunction) setStats, METH_O,
+ 	NULL },
++    { "reloadConfig", (PyCFunction) reloadConfig, METH_VARARGS|METH_KEYWORDS,
++	NULL },
+ 
+     { NULL }
+ } ;
+-- 
+1.7.4.4
+

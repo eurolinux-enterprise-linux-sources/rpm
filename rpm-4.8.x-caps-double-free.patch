@@ -1,0 +1,12 @@
+diff -up rpm-4.8.0/build/files.c.caps-double-free rpm-4.8.0/build/files.c
+--- rpm-4.8.0/build/files.c.caps-double-free	2013-08-05 11:49:54.240629630 +0300
++++ rpm-4.8.0/build/files.c	2013-08-05 11:49:54.247629614 +0300
+@@ -1519,7 +1519,7 @@ static rpmRC addFile(FileList fl, const
+ 	}
+ 
+ 	if (fl->currentCaps) {
+-	    flp->caps = fl->currentCaps;
++	    flp->caps = xstrdup(fl->currentCaps);
+ 	} else {
+ 	    flp->caps = xstrdup("");
+ 	}

@@ -1,0 +1,111 @@
+From bcd673bcdea7bf9ab80621d3d767866e7a232e8d Mon Sep 17 00:00:00 2001
+From: Panu Matilainen <pmatilai@redhat.com>
+Date: Tue, 28 Jun 2011 13:01:59 +0300
+Subject: [PATCH] Fix explicit directory %attr() when %defattr() is active
+ (RhBug:481875)
+
+- parseForAttr() doesn't know whether it's dealing with a directory or
+  a file, so it can't know which defaults it should use.
+  Move all the decision making on which of the explicit/default/implicit
+  attributes into addFile() where we do know what kind of entry we're
+  dealing with, and only parse in parseForAttr().
+- backported from commit 09efbe9656bed123dcfb240a7d94906b981a65d1
+- ported to 4.8.0
+
+--- rpm-4.8.0/build/files.c.defattr	2012-10-14 23:16:45.074226153 +0200
++++ rpm-4.8.0/build/files.c	2012-10-14 23:17:25.120014113 +0200
+@@ -557,13 +557,7 @@
+ 	}
+ 	ar->ar_fmode = ui;
+     } else {
+-	if (ret_ar == &(fl->def_ar)) {
+-	    ar->ar_fmodestr = NULL;
+-	    ar->ar_fmode = 0;
+-	} else {
+-	    ar->ar_fmodestr = fl->def_ar.ar_fmodestr;
+-	    ar->ar_fmode = fl->def_ar.ar_fmode;
+-	}
++	ar->ar_fmodestr = NULL;
+     }
+ 
+     if (ar->ar_dmodestr && !isAttrDefault(ar->ar_dmodestr)) {
+@@ -575,29 +569,15 @@
+ 	}
+ 	ar->ar_dmode = ui;
+     } else {
+-	if (ret_ar == &(fl->def_ar)) {
+-	    ar->ar_dmodestr = NULL;
+-	    ar->ar_dmode = 0;
+-	} else {
+-	    ar->ar_dmodestr = fl->def_ar.ar_dmodestr;
+-	    ar->ar_dmode = fl->def_ar.ar_dmode;
+-	}
++	ar->ar_dmodestr = NULL;
+     }
+ 
+     if (!(ar->ar_user && !isAttrDefault(ar->ar_user))) {
+-	if (ret_ar == &(fl->def_ar)) {
+-	    ar->ar_user = NULL;
+-	} else {
+-	    ar->ar_user = fl->def_ar.ar_user;
+-	}
++	ar->ar_user = NULL;
+     }
+ 
+     if (!(ar->ar_group && !isAttrDefault(ar->ar_group))) {
+-	if (ret_ar == &(fl->def_ar)) {
+-	    ar->ar_group = NULL;
+-	} else {
+-	    ar->ar_group = fl->def_ar.ar_group;
+-	}
++	ar->ar_group = NULL;
+     }
+ 
+     dupAttrRec(ar, ret_ar);
+@@ -1456,20 +1436,33 @@
+     fileUid = statp->st_uid;
+     fileGid = statp->st_gid;
+ 
+-    if (S_ISDIR(fileMode) && fl->cur_ar.ar_dmodestr) {
+-	fileMode &= S_IFMT;
+-	fileMode |= fl->cur_ar.ar_dmode;
+-    } else if (fl->cur_ar.ar_fmodestr != NULL) {
++    /* Explicit %attr() always wins */
++    if (fl->cur_ar.ar_fmodestr != NULL) {
+ 	fileMode &= S_IFMT;
+ 	fileMode |= fl->cur_ar.ar_fmode;
++    } else {
++	/* ...but %defattr() for directories and files is different */
++	if (S_ISDIR(fileMode)) {
++	    if (fl->def_ar.ar_dmodestr) {
++		fileMode &= S_IFMT;
++		fileMode |= fl->def_ar.ar_dmode;
++	    }
++	} else if (fl->def_ar.ar_fmodestr) {
++	    fileMode &= S_IFMT;
++	    fileMode |= fl->def_ar.ar_fmode;
++	}
+     }
+     if (fl->cur_ar.ar_user) {
+ 	fileUname = getUnameS(fl->cur_ar.ar_user);
++    } else if (fl->def_ar.ar_user) {
++	fileUname = getUnameS(fl->def_ar.ar_user);
+     } else {
+ 	fileUname = getUname(fileUid);
+     }
+     if (fl->cur_ar.ar_group) {
+ 	fileGname = getGnameS(fl->cur_ar.ar_group);
++    } else if (fl->def_ar.ar_group) {
++	fileGname = getGnameS(fl->def_ar.ar_group);
+     } else {
+ 	fileGname = getGname(fileGid);
+     }
+@@ -1890,7 +1883,7 @@
+   	fl.nLangs = 0;
+ 	fl.currentCaps = NULL;
+ 
+-	dupAttrRec(&fl.def_ar, &fl.cur_ar);
++	freeAttrRec(&fl.cur_ar);
+ 
+ 	if (parseForVerify(buf, &fl))
+ 	    continue;
