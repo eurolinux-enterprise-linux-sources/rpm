@@ -557,7 +557,7 @@ exit 0
 %changelog
 * Thu Nov 13 2014 Florian Festi <ffesti@redhat.com> - 4.8.0-38
 - Fix race condidition where unchecked data is exposed in the file system
-  (CVE-2013-6435)(#1163056)
+  (CVE-2013-6435)(#1163059)
 
 * Thu Sep 12 2013 Panu Matilainen <pmatilai@redhat.com> - 4.8.0-37
 - Fix thinko in the non-root python byte-compilation fix
