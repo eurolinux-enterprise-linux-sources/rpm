@@ -1,0 +1,34 @@
+--- rpm-4.8.0/lib/fsm.c.removal-warnings	2016-02-04 14:18:26.631062364 +0100
++++ rpm-4.8.0/lib/fsm.c	2016-02-04 14:20:01.329798951 +0100
+@@ -1843,7 +1843,7 @@
+ 		    case CPIOERR_ENOENT: /* XXX rmdir("/") linux 2.2.x kernel hack */
+ 		    case CPIOERR_ENOTEMPTY:
+ 	/* XXX make sure that build side permits %missingok on directories. */
+-			if (fsm->fflags & RPMFILE_MISSINGOK)
++			if (fsm->fflags & (RPMFILE_MISSINGOK|RPMFILE_GHOST))
+ 			    break;
+ 
+ 			/* XXX common error message. */
+@@ -1854,7 +1854,7 @@
+ 			break;
+ 		    default:
+ 			rpmlog(
+-			    (strict_erasures ? RPMLOG_ERR : RPMLOG_DEBUG),
++			    (strict_erasures ? RPMLOG_ERR : RPMLOG_WARNING),
+ 				_("%s rmdir of %s failed: %s\n"),
+ 				rpmteTypeString(te), fsm->path, strerror(errno));
+ 			break;
+@@ -1864,11 +1864,11 @@
+ 		    if (!rc) break;
+ 		    switch (rc) {
+ 		    case CPIOERR_ENOENT:
+-			if (fsm->fflags & RPMFILE_MISSINGOK)
++			if (fsm->fflags & (RPMFILE_MISSINGOK|RPMFILE_GHOST))
+ 			    break;
+ 		    default:
+ 			rpmlog(
+-			    (strict_erasures ? RPMLOG_ERR : RPMLOG_DEBUG),
++			    (strict_erasures ? RPMLOG_ERR : RPMLOG_WARNING),
+ 				_("%s unlink of %s failed: %s\n"),
+ 				rpmteTypeString(te), fsm->path, strerror(errno));
+ 			break;

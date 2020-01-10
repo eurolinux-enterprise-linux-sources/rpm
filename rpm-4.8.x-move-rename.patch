@@ -1,0 +1,59 @@
+--- rpm-4.8.0/lib/fsm.c.orig	2015-11-24 14:24:26.631168010 +0100
++++ rpm-4.8.0/lib/fsm.c	2015-11-24 14:24:10.422384989 +0100
+@@ -1882,27 +1882,17 @@
+ 
+ 	/* XXX Special case /dev/log, which shouldn't be packaged anyways */
+ 	if (!S_ISSOCK(st->st_mode) && !IS_DEV_LOG(fsm->path)) {
+-	    /* Rename temporary to final file name. */
+-	    if (!S_ISDIR(st->st_mode) &&
+-		(fsm->subdir || fsm->suffix || fsm->nsuffix))
+-	    {
+-		fsm->opath = fsm->path;
+-		fsm->path = fsmFsPath(fsm, st, NULL, fsm->nsuffix);
+-		rc = fsmNext(fsm, FSM_RENAME);
+-		if (!rc && fsm->nsuffix) {
+-		    char * opath = fsmFsPath(fsm, st, NULL, NULL);
+-		    rpmlog(RPMLOG_WARNING, _("%s created as %s\n"),
+-				(opath ? opath : ""),
+-				(fsm->path ? fsm->path : ""));
+-		    opath = _free(opath);
+-		}
+-		fsm->opath = _constfree(fsm->opath);
+-	    }
+ 	    /*
+ 	     * Set file security context (if not disabled).
+ 	     */
+ 	    if (!rc && !getuid()) {
++		/* Get security context for final filename not temp. filename */
++		const char *savedPath = fsm->path;
++		fsm->path = fsmFsPath(fsm, st, NULL, fsm->nsuffix);
+ 		rc = fsmMapFContext(fsm);
++
++		/* Set security context on temp. file */
++		fsm->path = savedPath;
+ 		if (!rc) {
+ 		    rc = fsmNext(fsm, FSM_LSETFCON);
+ 		    freecon(fsm->fcontext);	
+@@ -1935,6 +1925,22 @@
+ 		}
+ #endif /* WITH_CAP */
+ 	    }
++	    /* Rename temporary to final file name. */
++	    if (!S_ISDIR(st->st_mode) &&
++		(fsm->subdir || fsm->suffix || fsm->nsuffix))
++	    {
++		fsm->opath = fsm->path;
++		fsm->path = fsmFsPath(fsm, st, NULL, fsm->nsuffix);
++		rc = fsmNext(fsm, FSM_RENAME);
++		if (!rc && fsm->nsuffix) {
++		    char * opath = fsmFsPath(fsm, st, NULL, NULL);
++		    rpmlog(RPMLOG_WARNING, _("%s created as %s\n"),
++				(opath ? opath : ""),
++				(fsm->path ? fsm->path : ""));
++		    opath = _free(opath);
++		}
++		fsm->opath = _constfree(fsm->opath);
++	    }
+ 	}
+ 
+ 	/* Notify on success. */

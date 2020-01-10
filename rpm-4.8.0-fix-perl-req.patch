@@ -1,0 +1,17 @@
+# Derived from upstream commit 1d9a0018f9cde8fc5c59df9af70a2164e672210f
+--- rpm-4.8.0/scripts/perl.req.orig	2015-11-25 15:18:00.166530563 +0100
++++ rpm-4.8.0/scripts/perl.req	2015-11-25 15:18:31.803118545 +0100
+@@ -139,10 +139,10 @@
+     # within a multi-line print statement.  So, let's skip over such print
+     # statements whose content should not be loading modules anyway. -BEF-
+     #
+-    if ( m/print(\s+|\s+\S+\s+)\<\<(.*)/g ) {
++    if (m/print(?:\s+|\s+\S+\s+)\<\<\s*(["'`])(.+?)\1/ ||
++        m/print(\s+|\s+\S+\s+)\<\<(\w+)/) {
++
+         my $tag = $2;
+-        $tag =~ s/^\s*['"]//;       # strip off leading space and quote
+-        $tag =~ s/["']\s*;\s*$//;   # strip off trailing quote and space and semicolon
+         while (<FILE>) {
+             chomp;
+             ( $_ eq $tag ) && last;

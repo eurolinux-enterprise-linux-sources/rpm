@@ -1,0 +1,33 @@
+--- rpm-4.8.0/build/files.c.special-doc-dir	2016-01-13 16:30:19.998551710 +0100
++++ rpm-4.8.0/build/files.c	2016-01-13 16:53:35.160204917 +0100
+@@ -1928,6 +1928,30 @@ static rpmRC processPackageFiles(rpmSpec
+ 	    int _missing_doc_files_terminate_build =
+ 		    rpmExpandNumeric("%{?_missing_doc_files_terminate_build}");
+ 	    rpmRC rc;
++	    char *sDoc;
++	    int i, sDocLen;
++
++	    sDoc = rpmGenPath(fl.buildRoot, NULL, pkg->specialDocDir);
++	    sDocLen = strlen(sDoc);
++
++	    /* Check if specialDocDir is empty */
++	    for (i = 0; i < fl.fileListRecsUsed; i++) {
++		char *diskPath = fl.fileList[i].diskPath;
++
++		/* Just to be sure */
++		if (!diskPath)
++		    continue;
++
++		if (strlen(diskPath) > sDocLen &&
++		    rstreqn(diskPath, sDoc, sDocLen)) {
++
++		    /* Warn if specialDocDir is not empty */
++		    rpmlog(RPMLOG_WARNING, _("filelist: Can't mix \"%%doc\" "
++		    "with relative path and files with absolute path "
++		    "starting with: \"%s\"\n"), pkg->specialDocDir);
++		    break;
++		}
++	    }
+ 
+ 	    rc = doScript(spec, RPMBUILD_STRINGBUF, "%doc", pkg->specialDoc, test);
+ 	    if (rc != RPMRC_OK && _missing_doc_files_terminate_build)

@@ -21,7 +21,7 @@
 Summary: The RPM package management system
 Name: rpm
 Version: %{rpmver}
-Release: 47%{?dist}
+Release: 55%{?dist}
 Group: System Environment/Base
 Url: http://www.rpm.org/
 Source0: http://rpm.org/releases/rpm-4.8.x/%{name}-%{srcver}.tar.bz2
@@ -126,6 +126,13 @@ Patch293: rpm-4.8.0-power64-macro.patch
 Patch294: rpm-4.8.0-debugedit-segfault.patch
 Patch295: rpm-4.8.0-account-space-requirement.patch
 Patch296: rpm-4.8.0-order-with-requires.patch
+Patch297: rpm-4.8.0-fix-perl-req.patch
+Patch298: rpm-4.8.0-document-obsoletes.patch
+Patch299: rpm-4.8.0-removal-warnings.patch
+Patch300: rpm-4.8.0-bdb-warings.patch
+Patch601: rpm-4.8.0-autosetup-macros.patch
+Patch602: rpm-4.8.0-file-output.patch
+Patch603: rpm-4.8.0-fix-stripping.patch
 
 # These are not yet upstream
 Patch301: rpm-4.6.0-niagara.patch
@@ -139,6 +146,9 @@ Patch308: rpm-4.8.x-options-mutually-exclusive.patch
 Patch309: rpm-4.8.x-defattr-permissions.patch
 Patch310: rpm-4.8.x-error-in-log.patch
 Patch311: rpm-4.8.0-broken-pipe.patch
+Patch312: rpm-4.8.x-move-rename.patch
+# This is solved in upstream in different way
+Patch313: rpm-4.8.0-special-doc-dir.patch
 
 # Partially GPL/LGPL dual-licensed and some bits with BSD
 # SourceLicense: (GPLv2+ and LGPLv2+ with exceptions) and BSD 
@@ -153,7 +163,7 @@ Requires: popt >= 1.10.2.1
 Requires: curl
 
 %if %{without int_bdb}
-BuildRequires: db4-devel%{_isa}
+BuildRequires: db4-devel
 %endif
 
 %if %{with check}
@@ -164,28 +174,28 @@ BuildRequires: fakechroot
 # is a bit special...
 BuildRequires: redhat-rpm-config
 BuildRequires: gawk
-BuildRequires: elfutils-devel%{_isa} >= 0.112
-BuildRequires: elfutils-libelf-devel%{_isa}
-BuildRequires: readline-devel%{_isa} zlib-devel%{_isa}
-BuildRequires: nss-devel%{_isa}
+BuildRequires: elfutils-devel >= 0.112
+BuildRequires: elfutils-libelf-devel
+BuildRequires: readline-devel zlib-devel
+BuildRequires: nss-devel
 # The popt version here just documents an older known-good version
-BuildRequires: popt-devel%{_isa} >= 1.10.2
-BuildRequires: file-devel%{_isa}
-BuildRequires: gettext-devel%{_isa}
-BuildRequires: libselinux-devel%{_isa}
-BuildRequires: ncurses-devel%{_isa}
-BuildRequires: bzip2-devel%{_isa} >= 0.9.0c-2
-BuildRequires: python-devel%{_isa} >= 2.6
-BuildRequires: lua-devel%{_isa} >= 5.1
-BuildRequires: libcap-devel%{_isa}
-BuildRequires: libacl-devel%{_isa}
+BuildRequires: popt-devel >= 1.10.2
+BuildRequires: file-devel
+BuildRequires: gettext-devel
+BuildRequires: libselinux-devel
+BuildRequires: ncurses-devel
+BuildRequires: bzip2-devel >= 0.9.0c-2
+BuildRequires: python-devel >= 2.6
+BuildRequires: lua-devel >= 5.1
+BuildRequires: libcap-devel
+BuildRequires: libacl-devel
 # Needed for fix-nosrc patch touching testsuite
 BuildRequires: autoconf
 %if ! %{without xz}
-BuildRequires: xz-devel%{_isa} >= 4.999.8
+BuildRequires: xz-devel >= 4.999.8
 %endif
 %if %{with sqlite}
-BuildRequires: sqlite-devel%{_isa}
+BuildRequires: sqlite-devel
 %endif
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
@@ -373,6 +383,13 @@ packages on a system.
 %patch294 -p1 -b .debugedit-segfault
 %patch295 -p1 -b .space-requirement
 %patch296 -p1 -b .order-with-requires
+%patch297 -p1 -b .perl-req
+%patch298 -p1 -b .document-obsoletes
+%patch299 -p1 -b .removal-warnings
+%patch300 -p1 -b .bdb-warnings
+%patch601 -p1 -b .autosetup-macros
+%patch602 -p1 -b .file-output
+%patch603 -p1 -b .fix-stripping
 
 %patch301 -p1 -b .niagara
 %patch302 -p1 -b .geode
@@ -385,6 +402,8 @@ packages on a system.
 %patch309 -p1 -b .defattr-permissions
 %patch310 -p1 -b .error-in-log
 %patch311 -p1 -b .broken-pipe
+%patch312 -p1 -b .move-rename
+%patch313 -p1 -b .special-doc-dir
 
 %if %{with int_bdb}
 ln -s db-%{bdbver} db
@@ -597,6 +616,37 @@ exit 0
 %doc doc/librpm/html/*
 
 %changelog
+* Tue Mar 29 2016 Lubos Kardos <lkardos@redhat.com> - 4.8.0-55
+- Fix stripping of binaries for changed file output (#1320961)
+
+* Thu Mar 24 2016 Lubos Kardos <lkardos@redhat.com> - 4.8.0-54
+- Fix debuginfo creation for changed file output (#1320961)
+
+* Mon Feb 08 2016 Lubos Kardos <lkardos@redhat.com> - 4.8.0-52
+- Add %%autosetup macros (#1265021)
+
+* Thu Feb 04 2016 Lubos Kardos <lkardos@redhat.com> - 4.8.0-51
+- Don't show error for nonempty directories and config files (#1142386)
+
+* Mon Feb 01 2016 Lubos Kardos <lkardos@redhat.com> - 4.8.0-51
+- Revert the last change, it can cause regressions (#1142386)
+
+* Fri Jan 29 2016 Lubos Kardos <lkardos@redhat.com> - 4.8.0-50
+- Improve the error showed when a filesystem is read only (#1142386)
+
+* Mon Jan 18 2016 Lubos Kardos <lkardos@redhat.com> - 4.8.0-49
+- Fix compiler warning caused by changes in 4.8.0-48
+
+* Wed Jan 13 2016 Lubos Kardos <lkardos@redhat.com> - 4.8.0-48
+- Fixed race condition in rpm file deployment when updating an existing file
+  (#1264052)
+- Fixed problems with perl.req script (#1268021)
+- Document option "--obsoletes" (#1203714)
+- Remove _isa from all BuildRequires (#1287557)
+- Turn removal failure debug messages into warning messages (#1142386)
+- Move bdb warnings from stdin to stdout (#1296212)
+- Improved error message (#1250006)
+
 * Mon Jun 15 2015 Lubos Kardos <lkardos@redhat.com> - 4.8.0-47
 - Don't show error message if log function fails because of broken pipe
  (#1231138)
