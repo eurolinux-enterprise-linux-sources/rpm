@@ -1,0 +1,53 @@
+From 9de2834a09a7410296cafedcea545d2e3dda34a6 Mon Sep 17 00:00:00 2001
+From: Panu Matilainen <pmatilai@redhat.com>
+Date: Thu, 23 May 2013 12:45:08 +0300
+Subject: [PATCH] Error out on more than one --pipe option (RhBug:966093)
+
+- Every now and then somebody tries to use --setugids and --setperms
+  (or some other popt aliases relying on --pipe) together, which
+  wont work as expected. Error out with a hint for the potential cause.
+---
+ lib/poptALL.c | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/lib/poptALL.c b/lib/poptALL.c
+index 541e8c4..31e1210 100644
+--- a/lib/poptALL.c
++++ b/lib/poptALL.c
+@@ -22,6 +22,7 @@ const char *__progname;
+ #ifdef  NOTYET
+ #define POPT_RCFILE		-995
+ #endif
++#define POPT_PIPE		-993
+ 
+ static int _debug = 0;
+ 
+@@ -154,6 +155,16 @@ static void rpmcliAllArgCallback( poptContext con,
+ 	rpmDisplayQueryTags(stdout);
+ 	exit(EXIT_SUCCESS);
+ 	break;
++    case POPT_PIPE:
++	if (rpmcliPipeOutput) {
++	    fprintf(stderr,
++		    _("%s: error: more than one --pipe specified "
++		      "(incompatible popt aliases?)\n"), __progname);
++	    exit(EXIT_FAILURE);
++	}
++	rpmcliPipeOutput = xstrdup(arg);
++	break;
++	
+ #if defined(POPT_RCFILE)
+     case POPT_RCFILE:		/* XXX FIXME: noop for now */
+ 	break;
+@@ -222,7 +233,7 @@ struct poptOption rpmcliAllPoptTable[] = {
+  { "nosignature", '\0', 0, 0, RPMCLI_POPT_NOSIGNATURE,
+         N_("don't verify package signature(s)"), NULL },
+ 
+- { "pipe", '\0', POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN, &rpmcliPipeOutput, 0,
++ { "pipe", '\0', POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN, 0, POPT_PIPE,
+ 	N_("send stdout to CMD"),
+ 	N_("CMD") },
+ #if !defined(POPT_RCFILE)
+-- 
+1.9.3
+

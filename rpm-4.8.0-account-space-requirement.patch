@@ -1,0 +1,65 @@
+From 85df102165fdbe64978f2019d757d400e7448218 Mon Sep 17 00:00:00 2001
+From: Panu Matilainen <pmatilai@redhat.com>
+Date: Wed, 14 Nov 2012 10:31:15 +0200
+Subject: [PATCH] Account for temporary disk-space requirements on updates
+ (ticket #175)
+
+- When updating packages, we first create them with a temporary names
+  and only after all files from payload have been created this way,
+  the files are renamed to the final target. This means that performing
+  an update temporarily requires roughly twice the disk space (and inodes)
+  compared to the final result on per-package level. Which matters
+  when space is tight, such as presumably in RhBug:872314.
+- Simulate what happens on upgrades by adding block and inode delta
+  to the equation: installing a file always consumes an inode and
+  the specified amount of disk space. But when replacing files,
+  reduce the size-delta from disk consumption *after* checking for
+  problems in a given DSI.
+- Also fixes inode accounting which has been broken for forever (since
+  commit a9a1fd866c573f41287e6ad256ce64b3970a1eaa more exactly)
+---
+ lib/transaction.c | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/lib/transaction.c b/lib/transaction.c
+index 2be479b..4da27ce 100644
+--- a/lib/transaction.c
++++ b/lib/transaction.c
+@@ -55,6 +55,8 @@ struct diskspaceInfo_s {
+     int64_t iavail;	/*!< No. of inodes available. */
+     int64_t obneeded;	/*!< Bookkeeping to avoid duplicate reports */
+     int64_t oineeded;	/*!< Bookkeeping to avoid duplicate reports */
++    int64_t bdelta;	/*!< Delta for temporary space need on updates */
++    int64_t idelta;	/*!< Delta for temporary inode need on updates */
+ };
+ 
+ /* Adjust for root only reserved space. On linux e2fs, this is 5%. */
+@@ -210,7 +212,11 @@ static void rpmtsUpdateDSI(const rpmts ts, dev_t dev, const char *dirName,
+      */
+     case FA_CREATE:
+ 	dsi->bneeded += bneeded;
+-	dsi->bneeded -= BLOCK_ROUND(prevSize, dsi->bsize);
++	dsi->ineeded++;
++	if (prevSize) {
++	    dsi->bdelta += BLOCK_ROUND(prevSize, dsi->bsize);
++	    dsi->idelta++;
++	}
+ 	break;
+ 
+     case FA_ERASE:
+@@ -260,6 +266,12 @@ static void rpmtsCheckDSIProblems(const rpmts ts, const rpmte te)
+ 		dsi->oineeded = dsi->ineeded;
+ 	    }
+ 	}
++
++	/* Adjust for temporary -> final disk consumption */
++	dsi->bneeded -= dsi->bdelta;
++	dsi->bdelta = 0;
++	dsi->ineeded -= dsi->idelta;
++	dsi->idelta = 0;
+     }
+     ps = rpmpsFree(ps);
+ }
+-- 
+1.9.3
+

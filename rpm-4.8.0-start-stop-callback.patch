@@ -1,0 +1,109 @@
+diff -up rpm-4.8.0/lib/psm.c.start-stop-callback rpm-4.8.0/lib/psm.c
+--- rpm-4.8.0/lib/psm.c.start-stop-callback	2015-02-24 15:56:59.311631951 +0100
++++ rpm-4.8.0/lib/psm.c	2015-02-24 16:38:44.773953553 +0100
+@@ -668,17 +668,23 @@ static rpmRC runScript(rpmpsm psm, Heade
+     int xx;
+     FD_t scriptFd;
+     FD_t out = NULL;
+-    rpmRC rc = RPMRC_FAIL; /* assume failure */
++    rpmRC stoprc, rc = RPMRC_FAIL; /* assume failure */
+     int warn_only = 0;
+     char *sname = NULL; 
+     struct rpmtd_s prefixes;
+ 
++    scriptFd = rpmtsNotify(psm->ts, psm->te, RPMCALLBACK_SCRIPT_START, stag, 0);
++
+     assert(argvp != NULL);
+-    if (*argvp == NULL && script == NULL)
++    if (*argvp == NULL && script == NULL) {
++	rpmtsNotify(psm->ts, psm->te, RPMCALLBACK_SCRIPT_STOP, stag, RPMRC_OK);
+ 	return RPMRC_OK;
++    }
+ 
+     if (*argvp && *argvp[0] && rstreq(*argvp[0], "<lua>")) {
+-	return runLuaScript(psm, h, stag, *argvp, script, arg1, arg2);
++	rc = runLuaScript(psm, h, stag, *argvp, script, arg1, arg2);
++	rpmtsNotify(psm->ts, psm->te, RPMCALLBACK_SCRIPT_STOP, stag, rc);
++	return rc;
+     }
+     rasprintf(&sname, "%s(%s)", tag2sln(stag), rpmteNEVRA(psm->te));
+ 
+@@ -733,7 +738,9 @@ static rpmRC runScript(rpmpsm psm, Heade
+ 	}
+     }
+ 
+-    scriptFd = rpmtsScriptFd(ts);
++    if (scriptFd == NULL)
++	scriptFd = rpmtsScriptFd(ts);
++
+     if (scriptFd != NULL) {
+ 	if (rpmIsVerbose()) {
+ 	    out = fdDup(Fileno(scriptFd));
+@@ -792,6 +799,10 @@ static rpmRC runScript(rpmpsm psm, Heade
+ exit:
+     rpmtdFreeData(&prefixes);
+ 
++    /* Map warn-only errors to "notfound" for script stop callback */
++    stoprc = (rc != RPMRC_OK && warn_only) ? RPMRC_NOTFOUND : rc;
++    rpmtsNotify(psm->ts, psm->te, RPMCALLBACK_SCRIPT_STOP, stag, stoprc);
++
+     /* notify callback for all errors, "total" abused for warning/error */
+     if (rc != RPMRC_OK) {
+ 	if (warn_only) {
+diff -up rpm-4.8.0/lib/rpmcallback.h.start-stop-callback rpm-4.8.0/lib/rpmcallback.h
+--- rpm-4.8.0/lib/rpmcallback.h.start-stop-callback	2015-02-24 16:43:40.462626615 +0100
++++ rpm-4.8.0/lib/rpmcallback.h	2015-02-24 16:42:07.422988105 +0100
+@@ -27,7 +27,9 @@ typedef enum rpmCallbackType_e {
+     RPMCALLBACK_REPACKAGE_STOP	= (1 << 12),	/* obsolete, unused */
+     RPMCALLBACK_UNPACK_ERROR	= (1 << 13),
+     RPMCALLBACK_CPIO_ERROR	= (1 << 14),
+-    RPMCALLBACK_SCRIPT_ERROR	= (1 << 15)
++    RPMCALLBACK_SCRIPT_ERROR	= (1 << 15),
++    RPMCALLBACK_SCRIPT_START	= (1 << 16),
++    RPMCALLBACK_SCRIPT_STOP	= (1 << 17),
+ } rpmCallbackType;
+ 
+ /**
+diff -up rpm-4.8.0/lib/rpminstall.c.start-stop-callback rpm-4.8.0/lib/rpminstall.c
+--- rpm-4.8.0/lib/rpminstall.c.start-stop-callback	2015-02-24 16:43:54.848416102 +0100
++++ rpm-4.8.0/lib/rpminstall.c	2015-02-24 16:44:52.453573142 +0100
+@@ -196,6 +196,10 @@ void * rpmShowProgress(const void * arg,
+ 	break;
+     case RPMCALLBACK_SCRIPT_ERROR:
+ 	break;
++    case RPMCALLBACK_SCRIPT_START:
++	break;
++    case RPMCALLBACK_SCRIPT_STOP:
++	break;
+     case RPMCALLBACK_UNKNOWN:
+     default:
+ 	break;
+diff -up rpm-4.8.0/lib/rpmts.c.start-stop-callback rpm-4.8.0/lib/rpmts.c
+--- rpm-4.8.0/lib/rpmts.c.start-stop-callback	2015-02-24 16:57:19.362669093 +0100
++++ rpm-4.8.0/lib/rpmts.c	2015-02-24 17:04:25.624453250 +0100
+@@ -750,6 +750,13 @@ void * rpmtsNotify(rpmts ts, rpmte te,
+ 		rpmCallbackType what, rpm_loff_t amount, rpm_loff_t total)
+ {
+     void * ptr = NULL;
++
++    if ((what == RPMCALLBACK_SCRIPT_START || what == RPMCALLBACK_SCRIPT_STOP) &&
++	!rpmExpandNumeric("%{?_accept_script_stop_start_callbacks}")) {
++
++	return NULL;
++    }
++
+     if (ts && ts->notify) {
+ 	Header h = NULL;
+ 	fnpyKey cbkey = NULL;
+diff -up rpm-4.8.0/python/rpmmodule.c.start-stop-callback rpm-4.8.0/python/rpmmodule.c
+--- rpm-4.8.0/python/rpmmodule.c.start-stop-callback	2015-02-24 16:45:10.279312290 +0100
++++ rpm-4.8.0/python/rpmmodule.c	2015-02-24 16:46:27.364184274 +0100
+@@ -446,6 +446,8 @@ static int initModule(PyObject *m)
+     REGISTER_ENUM(RPMCALLBACK_UNPACK_ERROR);
+     REGISTER_ENUM(RPMCALLBACK_CPIO_ERROR);
+     REGISTER_ENUM(RPMCALLBACK_SCRIPT_ERROR);
++    REGISTER_ENUM(RPMCALLBACK_SCRIPT_START);
++    REGISTER_ENUM(RPMCALLBACK_SCRIPT_STOP);
+ 
+     REGISTER_ENUM(RPMPROB_BADARCH);
+     REGISTER_ENUM(RPMPROB_BADOS);

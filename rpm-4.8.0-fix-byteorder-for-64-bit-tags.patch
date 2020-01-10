@@ -1,0 +1,21 @@
+From 09fb3830b66fa88162d2e16eeb6c4a63eec9fdfe Mon Sep 17 00:00:00 2001
+From: Florian Festi <ffesti@redhat.com>
+Date: Mon, 30 Sep 2013 14:17:33 +0200
+Subject: [PATCH] Fix byteorder for 64 bit tags on big endian machines
+ (rh#1012946)
+
+--- a/lib/header_internal.c
++++ b/lib/header_internal.c
+@@ -10,10 +10,12 @@ static const size_t headerMaxbytes = (32*1024*1024);
+ #include "debug.h"
+ 
+ uint64_t htonll( uint64_t n ) {
++#if __BYTE_ORDER == __LITTLE_ENDIAN
+     uint32_t *i = (uint32_t*)&n;
+     uint32_t b = i[0];
+     i[0] = htonl(i[1]);
+     i[1] = htonl(b);
++#endif
+     return n;
+ }
+ 

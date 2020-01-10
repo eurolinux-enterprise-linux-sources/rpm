@@ -1,0 +1,13 @@
+--- rpm-4.8.0/macros.in.power64-macro	2015-03-04 14:22:13.118716729 +0100
++++ rpm-4.8.0/macros.in	2015-03-04 14:23:47.442322018 +0100
+@@ -1176,6 +1176,10 @@
+ # arch macro for all supported Alpha processors
+ %alpha	alpha alphaev56 alphaev6 alphaev67
+ 
++#------------------------------------------------------------------------------
++# arch macro for all supported PowerPC 64 processors
++%power64    ppc64 ppc64p7 ppc64le
++
+ #------------------------------------------------------------------------
+ # Use in %install to generate locale specific file lists. For example,
+ #

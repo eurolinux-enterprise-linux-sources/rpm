@@ -1,0 +1,23 @@
+From 2f31395dcd49459c775caaadefa0513181cd12ff Mon Sep 17 00:00:00 2001
+From: Lubos Kardos <lkardos@localhost.localdomain>
+Date: Wed, 17 Dec 2014 12:53:30 +0100
+Subject: [PATCH] Fix color skipping of multiple files with the same content.
+
+- If we process some file and we find another file with the same path
+  and the same content and this other file is skipped for color then
+  the currently being processed file has to be skipped for color too.
+  (RhBug:1170124)
+
+--- rpm-4.8.0/lib/transaction.c	2015-02-19 12:13:16.013707854 +0100
++++ rpm-4.8.0/lib/transaction.c.color-skipping	2015-02-19 12:12:41.296234821 +0100
+@@ -536,6 +536,10 @@
+ 			rpmteNEVRA(otherTe),
+ 			0);
+ 		}
++	    /* if the other file is color skipped then skip this file too */
++	    } else if (rpmfsGetAction(otherFs, otherFileNum) == FA_SKIPCOLOR) {
++		rpmfsSetAction(fs, i, FA_SKIPCOLOR);
++		done = 1;
+ 	    }
+ 
+ 	    /* Try to get the disk accounting correct even if a conflict. */

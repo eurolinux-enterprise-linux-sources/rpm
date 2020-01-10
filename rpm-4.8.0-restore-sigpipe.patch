@@ -1,0 +1,27 @@
+From 6977e095566761bb50651119a17ea41f7de7b6ad Mon Sep 17 00:00:00 2001
+From: Panu Matilainen <pmatilai@redhat.com>
+Date: Fri, 21 Jan 2011 09:57:36 +0200
+Subject: [PATCH] Restore default SIGPIPE handling for build scriptlets
+ (RhBug:651463)
+
+---
+ build/build.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/build/build.c b/build/build.c
+index aaca9b8..5924ec6 100644
+--- a/build/build.c
++++ b/build/build.c
+@@ -169,7 +169,8 @@ rpmRC doScript(rpmSpec spec, rpmBuildFlags what, const char *name,
+ 
+     rpmlog(RPMLOG_NOTICE, _("Executing(%s): %s\n"), name, buildCmd);
+     if (!(child = fork())) {
+-
++	/* NSPR messes with SIGPIPE, reset to default for the kids */
++	signal(SIGPIPE, SIG_DFL);
+ 	errno = 0;
+ 	(void) execvp(argv[0], (char *const *)argv);
+ 
+-- 
+1.9.3
+

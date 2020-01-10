@@ -1,0 +1,11 @@
+--- rpm-4.8.0/doc/rpm.8.options-mutually-exclusive	2015-02-19 13:44:30.490691012 +0100
++++ rpm-4.8.0/doc/rpm.8	2015-02-19 13:45:49.169538036 +0100
+@@ -851,6 +851,8 @@
+ .TP
+ \fBrpm\fR \fB--setugids\fR \fIPACKAGE_NAME\fR
+ sets user/group ownership of files in the given package.
++.TP
++Options \fB--setperms\fR and \fB--setugids\fR are mutually exclusive.
+ 
+ .SS "FTP/HTTP OPTIONS"
+ .PP

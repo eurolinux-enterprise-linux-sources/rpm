@@ -21,7 +21,7 @@
 Summary: The RPM package management system
 Name: rpm
 Version: %{rpmver}
-Release: 38%{?dist}
+Release: 47%{?dist}
 Group: System Environment/Base
 Url: http://www.rpm.org/
 Source0: http://rpm.org/releases/rpm-4.8.x/%{name}-%{srcver}.tar.bz2
@@ -30,7 +30,6 @@ Source1: db-%{bdbver}.tar.gz
 %endif
 
 Patch0: rpm-4.7.90-devel-autodep.patch
-Patch1: rpm-4.5.90-pkgconfig-path.patch
 Patch2: rpm-4.5.90-gstreamer-provides.patch
 # Fedora specspo is setup differently than what rpm expects, considering
 # this as Fedora-specific patch for now
@@ -113,6 +112,21 @@ Patch280: rpm-4.8.x-cond-include.patch
 Patch281: rpm-4.8.x-strict-script-errors.patch
 Patch282: rpm-4.8.x-rpmdb-hdrunload.patch
 
+Patch283: rpm-4.8.0-ignore-multiline1.patch
+Patch284: rpm-4.8.0-ignore-multiline2.patch
+Patch285: rpm-4.8.0-color-skipping.patch
+Patch286: rpm-4.8.0-disable-curl-globbing.patch
+Patch287: rpm-4.8.0-directory-replaced-with-symlink.patch
+Patch288: rpm-4.8.0-restore-sigpipe.patch
+Patch289: rpm-4.8.0-fix-byteorder-for-64-bit-tags.patch
+Patch290: rpm-4.8.0-setperms-setugids.patch
+Patch291: rpm-4.8.0-pkgconfig-path.patch
+Patch292: rpm-4.8.0-start-stop-callback.patch
+Patch293: rpm-4.8.0-power64-macro.patch
+Patch294: rpm-4.8.0-debugedit-segfault.patch
+Patch295: rpm-4.8.0-account-space-requirement.patch
+Patch296: rpm-4.8.0-order-with-requires.patch
+
 # These are not yet upstream
 Patch301: rpm-4.6.0-niagara.patch
 Patch302: rpm-4.7.1-geode-i686.patch
@@ -120,6 +134,11 @@ Patch303: rpm-4.8.0-em64t.patch
 Patch304: rpm-4.8.x-read-retry.patch
 Patch305: rpm-4.8.x-man-fileid.patch
 Patch306: rpm-4.8.0-CVE-2013-6435.patch
+Patch307: rpm-4.8.x-sources-checksize.patch
+Patch308: rpm-4.8.x-options-mutually-exclusive.patch
+Patch309: rpm-4.8.x-defattr-permissions.patch
+Patch310: rpm-4.8.x-error-in-log.patch
+Patch311: rpm-4.8.0-broken-pipe.patch
 
 # Partially GPL/LGPL dual-licensed and some bits with BSD
 # SourceLicense: (GPLv2+ and LGPLv2+ with exceptions) and BSD 
@@ -218,6 +237,10 @@ Requires: findutils sed grep gawk diffutils file patch >= 2.5
 Requires: unzip gzip bzip2 cpio lzma xz
 Requires: pkgconfig
 Requires: /usr/bin/gdb-add-index
+# Technically rpmbuild doesn't require any external configuration, but
+# creating distro-compatible packages does. To make the common case
+# "just work" depend on a  provide system-rpm-config.
+Requires: system-rpm-config
 Conflicts: ocaml-runtime < 3.11.1-7
 
 %description build
@@ -259,7 +282,6 @@ packages on a system.
 %prep
 %setup -q -n %{name}-%{srcver} %{?with_int_bdb:-a 1}
 %patch0 -p1 -b .devel-autodep
-%patch1 -p1 -b .pkgconfig-path
 %patch2 -p1 -b .gstreamer-prov
 %patch3 -p1 -b .fedora-specspo
 %patch4 -p1 -b .no-man-dirs
@@ -337,12 +359,32 @@ packages on a system.
 %patch281 -p1 -b .strict-script-errors
 %patch282 -p1 -b .rpmdb-hdrunload
 
+%patch283 -p1 -b .ignore-multiline1
+%patch284 -p1 -b .ignore-multiline2
+%patch285 -p1 -b .color-skipping
+%patch286 -p1 -b .curl-globbing
+%patch287 -p1 -b .directory-symlink
+%patch288 -p1 -b .restore-sigpipe
+%patch289 -p1 -b .fix-byteorder
+%patch290 -p1 -b .setperms-setugids
+%patch291 -p1 -b .pkgconfig-path
+%patch292 -p1 -b .start-stop-callback
+%patch293 -p1 -b .power64-macro
+%patch294 -p1 -b .debugedit-segfault
+%patch295 -p1 -b .space-requirement
+%patch296 -p1 -b .order-with-requires
+
 %patch301 -p1 -b .niagara
 %patch302 -p1 -b .geode
 %patch303 -p1 -b .em64t
 %patch304 -p1 -b .read-retry
 %patch305 -p1 -b .man-fileid
 %patch306 -p1 -b .chmod
+%patch307 -p1 -b .checksize
+%patch308 -p1 -b .options-mutually-exclusive
+%patch309 -p1 -b .defattr-permissions
+%patch310 -p1 -b .error-in-log
+%patch311 -p1 -b .broken-pipe
 
 %if %{with int_bdb}
 ln -s db-%{bdbver} db
@@ -555,6 +597,55 @@ exit 0
 %doc doc/librpm/html/*
 
 %changelog
+* Mon Jun 15 2015 Lubos Kardos <lkardos@redhat.com> - 4.8.0-47
+- Don't show error message if log function fails because of broken pipe
+ (#1231138)
+
+* Fri Mar 19 2015 Lubos Kardos <lkardos@redhat.com> - 4.8.0-46
+- Fixed problems with OrderWithRequires (#760793)
+- Fixed names of endianess macros (#1040318)
+
+* Fri Mar 13 2015 Lubos Kardos <lkardos@redhat.com> - 4.8.0-45
+- Add tag OrderWithRequires (#760793)
+
+* Mon Mar 09 2015 Lubos Kardos <lkardos@redhat.com> - 4.8.0-44
+- Change require from "redhat-rpm-config" to "system-rpm-config" (#1122100)
+
+* Wed Mar 04 2015 Lubos Kardos <lkardos@redhat.com> - 4.8.0-43
+- Fix for patch for color skipping (#1170124)
+- Add power64 macro (#1178083)
+- Plug segfault on NULL pointer dereference in debugedit (#903009)
+- Account for temporary disk-space requirements on update (#872314)
+
+* Mon Mar 02 2015 Lubos Kardos <lkardos@redhat.com> - 4.8.0-42
+- Removed patch for shebangs in format "!#/usr/bin/env interpeter"
+  (#1151828)
+
+* Thu Feb 26 2015 Lubos Kardos <lkardos@redhat.com> - 4.8.0-41
+- Add missing braces around the block of code (#606239)
+- Add missing patch for shebangs in format "!#/usr/bin/env interpeter"
+  (#1151828)
+
+* Wed Feb 18 2015 Lubos Kardos <lkardos@redhat.com> - 4.8.0-40
+- Add check if source files aren't too big for payload (#833427)
+- Fix producing bogus dependencies by perl.req (#1024517, #1026750)
+- Fix color skipping of multiple files with the same content (#1170124)
+- Disable curl globbing for remote retrievals (#1076277)
+- Make rpm-build depend on redhat-rpm-config provide (#1122100)
+- Handle directory replaced with a symlink to one in verify (#1158377)
+- Restore default SIGPIPE handling for build scriptlets (#993868)
+- State --setperms and --setugids are mutually exclusive (#1119572)
+- Fix byteorder for 64 bit tags on big endian machines (#1040318)
+- File mode from %%defattr is applied to directories with warning (#997774)
+- If an error occurs during printing log message then print the error
+  on stderr (#1139444)
+- Error out on more than one --pipe option (#966093)
+- Extend PKG_CONFIG_PATH instead of override (#921969)
+- Add RPMCALLBACK_SCRIPT_START and RPMCALLBACK_SCRIPT_STOP. These events are
+  not emitted by default (#606239)
+- Enable rpm to work with shebangs in format "!#/usr/bin/env interpeter"
+  (#1151828)
+
 * Thu Nov 13 2014 Florian Festi <ffesti@redhat.com> - 4.8.0-38
 - Fix race condidition where unchecked data is exposed in the file system
   (CVE-2013-6435)(#1163059)

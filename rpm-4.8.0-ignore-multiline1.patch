@@ -1,0 +1,39 @@
+From 0d5929ba5eabadec49273bb090ba9158dfccc30c Mon Sep 17 00:00:00 2001
+From: Brian Elliott Finley <brian@thefinleys.com>
+Date: Tue, 18 Feb 2014 15:26:22 +0200
+Subject: [PATCH] Don't match use or requires within a multi-line print
+ statement
+
+Signed-off-by: Panu Matilainen <pmatilai@redhat.com>
+---
+ scripts/perl.req | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+--- rpm-4.8.0/scripts/perl.req.multiline1
++++ rpm-4.8.0/scripts/perl.req
+@@ -134,6 +134,22 @@ sub process_file {
+       }
+     }
+ 
++    #
++    # The (require|use) match further down in this subroutine will match lines
++    # within a multi-line print statement.  So, let's skip over such print
++    # statements whose content should not be loading modules anyway. -BEF-
++    #
++    if ( m/print(\s+|\s+\S+\s+)\<\<(.*)/g ) {
++        my $tag = $2;
++        $tag =~ s/^\s*['"]//;       # strip off leading space and quote
++        $tag =~ s/["']\s*;\s*$//;   # strip off trailing quote and space and semicolon
++        while (<FILE>) {
++            chomp;
++            ( $_ eq $tag ) && last;
++        }
++        $_ = <FILE>;
++    }
++
+     if ( 
+ 
+ # ouch could be in a eval, perhaps we do not want these since we catch
+-- 
+1.9.3
+

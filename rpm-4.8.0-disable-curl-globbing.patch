@@ -1,0 +1,31 @@
+From 409fa83c94d50ab0c4849b737f2647e1069aea8b Mon Sep 17 00:00:00 2001
+From: Panu Matilainen <pmatilai@redhat.com>
+Date: Mon, 17 Mar 2014 10:27:48 +0200
+Subject: [PATCH] Disable curl globbing for remote retrievals
+
+- urlGetFile() can only handle one file at a time, so globbing does
+  not make sense and only confuses us. Besides, useful things like
+  'rpm -Uvh http://somewhere.org/foo-1.2-1.{i386,x86_64}.rpm'
+  work just as well without curl-level globbing.
+- Incidentally this is also the documented workaround for using
+  IPv6 numerical addresses with curl (RhBug:1076277)
+---
+ macros.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/macros.in b/macros.in
+index fd7443c..ccb834f 100644
+--- a/macros.in
++++ b/macros.in
+@@ -1024,7 +1024,7 @@ done \
+ # for any special local needs use %__urlhelper_localopts in system-wide
+ # or per-user macro configuration.
+ %__urlhelpercmd         @__CURL@
+-%__urlhelperopts        --silent --show-error --fail --location -o
++%__urlhelperopts        --silent --show-error --fail --globoff --location -o
+ %__urlhelper_proxyopts   %{?_httpproxy:--proxy %{_httpproxy}%{?_httpport::%{_httpport}}}%{!?_httpproxy:%{nil}}
+ %_urlhelper             %{__urlhelpercmd} %{?__urlhelper_localopts} %{?__urlhelper_proxyopts} %{__urlhelperopts}
+ 
+-- 
+1.9.3
+

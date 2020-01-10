@@ -1,0 +1,31 @@
+From aa8979f4d1cd5ad5b2c69135595d90489e039817 Mon Sep 17 00:00:00 2001
+From: Panu Matilainen <pmatilai@redhat.com>
+Date: Fri, 15 Mar 2013 12:34:58 +0200
+Subject: [PATCH] Make sure PKG_CONFIG_PATH is set according to target libs
+
+- pkg-config isn't multilib-aware by itself so things fail when
+  building packages for secondary archs (RhBug:212522)
+- A variant of this patch has been in Fedora and RHEL for quite some
+  time, but they used to just brutally override whatever might
+  have been in PKG_CONFIG_PATH, which can break things in a custom
+  setup (RhBug:569773). Append instead of full override.
+---
+ macros.in | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/macros.in b/macros.in
+index 0fdf7b0..6717807 100644
+--- a/macros.in
++++ b/macros.in
+@@ -805,6 +805,8 @@ package or when debugging this package.\
+   export RPM_BUILD_ROOT}\
+   %{?_javaclasspath:CLASSPATH=\"%{_javaclasspath}\"\
+   export CLASSPATH}\
++  PKG_CONFIG_PATH=\"${PKG_CONFIG_PATH}:%{_libdir}/pkgconfig:%{_datadir}/pkgconfig\"\
++  export PKG_CONFIG_PATH\
+   \
+   %{verbose:set -x}%{!verbose:exec > /dev/null}\
+   umask 022\
+-- 
+1.9.3
+

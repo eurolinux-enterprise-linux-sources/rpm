@@ -1,0 +1,16 @@
+--- rpm-4.8.0/build/files.c.checksize	2015-02-18 13:33:54.043520379 +0100
++++ rpm-4.8.0/build/files.c	2015-02-18 13:39:58.801102460 +0100
+@@ -2186,6 +2186,13 @@ int processSourceFiles(rpmSpec spec)
+ 	    fl.processingFailed = 1;
+ 	}
+ 
++	if (S_ISREG(flp->fl_mode) && (rpm_loff_t) flp->fl_size >= CPIO_FILESIZE_MAX) {
++	    fl.largeFiles = 1;
++	    rpmlog(RPMLOG_ERR, _("File %s too large for payload\n"),
++		   flp->diskPath);
++	    fl.processingFailed = 1;
++	}
++
+ 	isSpec = 0;
+ 	x++;
+     }
