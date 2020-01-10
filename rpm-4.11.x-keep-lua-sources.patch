@@ -1,0 +1,32 @@
+From 3c2c31b1ff7e2ebd2e5108f89ed8b2bb84bc212c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Nikola=20Forr=C3=B3?= <nforro@redhat.com>
+Date: Tue, 5 Dec 2017 11:20:09 +0100
+Subject: [PATCH] Only destroy lua tables if there are no BASpecs left
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Lua tables "sources" and "patches" are created in newSpec() and destroyed
+in rpmSpecFree().
+
+But in case BuildArch processing takes place in parseSpec(), the function
+returns successfully but the tables are already destroyed by rpmSpecFree()
+that has been called for the original spec.
+
+Signed-off-by: Nikola Forró <nforro@redhat.com>
+--- current/build/spec.c.orig	2018-03-21 01:40:57.713558133 +0100
++++ current/build/spec.c	2018-03-21 01:41:37.712667019 +0100
+@@ -514,9 +514,12 @@
+     spec->cookie = _free(spec->cookie);
+ 
+ #ifdef WITH_LUA
++    // only destroy lua tables if there are no BASpecs left                    
++    if (spec->recursing || spec->BACount == 0) {
+     rpmlua lua = NULL; /* global state */
+     rpmluaDelVar(lua, "patches");
+-    rpmluaDelVar(lua, "sources");	
++    rpmluaDelVar(lua, "sources");
++    }
+ #endif
+ 
+     spec->sources = freeSources(spec->sources);

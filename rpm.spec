@@ -21,7 +21,7 @@
 Summary: The RPM package management system
 Name: rpm
 Version: %{rpmver}
-Release: 55%{?dist}
+Release: 59%{?dist}
 Group: System Environment/Base
 Url: http://www.rpm.org/
 Source0: http://rpm.org/releases/rpm-4.8.x/%{name}-%{srcver}.tar.bz2
@@ -133,6 +133,12 @@ Patch300: rpm-4.8.0-bdb-warings.patch
 Patch601: rpm-4.8.0-autosetup-macros.patch
 Patch602: rpm-4.8.0-file-output.patch
 Patch603: rpm-4.8.0-fix-stripping.patch
+Patch610: rpm-4.8.x-weakdep-tags.patch
+Patch611: rpm-4.8.x-macro-table-performance.patch
+Patch612: rpm-4.8.x-Fix-Python-hdr-refcount.patch
+Patch613: rpm-4.11.x-sources-to-lua-variables.patch
+Patch614: rpm-4.11.x-keep-lua-sources.patch
+Patch615: rpm-4.8.x-nested-lua.patch
 
 # These are not yet upstream
 Patch301: rpm-4.6.0-niagara.patch
@@ -149,6 +155,7 @@ Patch311: rpm-4.8.0-broken-pipe.patch
 Patch312: rpm-4.8.x-move-rename.patch
 # This is solved in upstream in different way
 Patch313: rpm-4.8.0-special-doc-dir.patch
+
 
 # Partially GPL/LGPL dual-licensed and some bits with BSD
 # SourceLicense: (GPLv2+ and LGPLv2+ with exceptions) and BSD 
@@ -390,6 +397,12 @@ packages on a system.
 %patch601 -p1 -b .autosetup-macros
 %patch602 -p1 -b .file-output
 %patch603 -p1 -b .fix-stripping
+%patch610 -p1 -b .weakdep-tags
+%patch611 -p1 -b .macro-table-performance
+%patch612 -p1 -b .header-refcount
+%patch613 -p1 -b .sourceslua
+%patch614 -p1 -b .sourceslua2
+%patch615 -p1 -b .nested-lua
 
 %patch301 -p1 -b .niagara
 %patch302 -p1 -b .geode
@@ -404,6 +417,7 @@ packages on a system.
 %patch311 -p1 -b .broken-pipe
 %patch312 -p1 -b .move-rename
 %patch313 -p1 -b .special-doc-dir
+
 
 %if %{with int_bdb}
 ln -s db-%{bdbver} db
@@ -616,6 +630,21 @@ exit 0
 %doc doc/librpm/html/*
 
 %changelog
+* Mon Mar 26 2018 Panu Matilainen <pmatilai@redhat.com> - 4.8.0-59
+- Backport nested Lua macro support for %%autosetup patch application (#1438815)
+
+* Wed Mar 21 2018 Florian Festi <ffesti@redhat.com> - 4.8.0-58
+- Add other fix needed for %%autosetup (#1438815)
+- Revised fix for python header memleak (#1438811)
+
+* Tue Feb 06 2018 Florian Festi <ffesti@redhat.com> - 4.8.0-57
+- Very slow "rpm -q --specfile a.spec" if specfile has thousands of patches (#1383422)
+- Fix refcounting for Python hdr objects (#1438811)
+- Add sources to lua to prevent %%autosetup failing in some cases (#1438815)
+
+* Tue Aug 29 2017 Panu Matilainen <pmatilai@redhat.com> - 4.8.0-56
+- Backport weak dependency tag definitions from upstream (#1466678)
+
 * Tue Mar 29 2016 Lubos Kardos <lkardos@redhat.com> - 4.8.0-55
 - Fix stripping of binaries for changed file output (#1320961)
 
