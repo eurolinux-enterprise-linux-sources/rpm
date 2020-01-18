@@ -21,7 +21,7 @@
 Summary: The RPM package management system
 Name: rpm
 Version: %{rpmver}
-Release: %{?snapver:0.%{snapver}.}32%{?dist}
+Release: %{?snapver:0.%{snapver}.}35%{?dist}
 Group: System Environment/Base
 Url: http://www.rpm.org/
 Source0: http://rpm.org/releases/rpm-4.11.x/%{name}-%{srcver}.tar.bz2
@@ -88,6 +88,10 @@ Patch185: rpm-4.13.x-Make-the-stftime-buffer-big-enuff.patch
 Patch186: rpm-4.11.x-skipattr.patch
 Patch187: rpm-4.13.x-Implement-noconfig-query.patch
 Patch188: rpm-4.11.x-weakdep-tags.patch
+Patch189: rpm-4.12.x-rpmSign-return-value-correction.patch
+Patch190: rpm-4.13.x-fix_find_debuginfo_opts_g.patch
+Patch191: rpm-4.13.x-enable_noghost_option.patch
+Patch192: rpm-4.11.x-provide-audit-events.patch
 
 # Filter soname dependencies by name
 Patch200: rpm-4.11.x-filter-soname-deps.patch
@@ -179,6 +183,7 @@ BuildRequires: xz-devel >= 4.999.8
 # Required for systemd-inhibit plugin
 BuildRequires: dbus-devel
 %endif
+BuildRequires: audit-libs-devel
 
 # Only required by sepdebugcrcfix patch
 BuildRequires: binutils-devel
@@ -356,6 +361,10 @@ Requires: rpm-libs%{_isa} = %{version}-%{release}
 %patch186 -p1 -b .skipattr
 %patch187 -p1 -b .noconfig-cli
 %patch188 -p1 -b .weakdep-tags
+%patch189 -p1 -b .rpmsign-error
+%patch190 -p1 -b .find_debuginfo_opts
+%patch191 -p1 -b .noghost
+%patch192 -p1 -b .audit-events
 
 %patch200 -p1 -b .filter-soname-deps
 %patch201 -p1 -b .dont-filter-ld64
@@ -618,6 +627,19 @@ exit 0
 %doc COPYING doc/librpm/html/*
 
 %changelog
+* Tue Jun 19 2018 Pavlina Moravcova Varekova <pmoravco@redhat.com> - 4.11.3-35
+- Correct "root_dir" output in audit event (#1555326)
+
+* Fri May 25 2018 Pavlina Moravcova Varekova <pmoravco@redhat.com> - 4.11.3-34
+- Adjust --noghost documentation (#1395818)
+- Provide audit events on update verification (#1555326)
+
+* Thu May 10 2018 Pavlina Moravcova Varekova <pmoravco@redhat.com> - 4.11.3-33
+- Repair of --noghost option implementation (#1395818)
+- Backport fix rpmSign() return value in case of failure (#1419590)
+- Backport passing _find_debuginfo_opts -g to eu-strip for executables
+  (#1540653)
+
 * Mon Nov 13 2017 Panu Matilainen <pmatilai@redhat.com> - 4.11.3-32
 - Backport weak dependency tag definitions (#1508538)
 
