@@ -21,7 +21,7 @@
 Summary: The RPM package management system
 Name: rpm
 Version: %{rpmver}
-Release: %{?snapver:0.%{snapver}.}21%{?dist}
+Release: %{?snapver:0.%{snapver}.}25%{?dist}
 Group: System Environment/Base
 Url: http://www.rpm.org/
 Source0: http://rpm.org/releases/rpm-4.11.x/%{name}-%{srcver}.tar.bz2
@@ -77,6 +77,11 @@ Patch174: rpm-4.11.x-define-PY_SSIZE_T_CLEAN.patch
 Patch175: rpm-4.11.x-python-binding-test-case.patch
 Patch176: rpm-4.11.x-Add-noplugins.patch
 Patch177: rpm-4.11.x-no-longer-config.patch
+Patch178: rpm-4.11.x-Fix-off-by-one-base64.patch
+Patch179: rpm-4.11.x-sources-to-lua-variables.patch
+Patch180: rpm-4.11.x-Fix-Python-hdr-refcount.patch
+Patch181: rpm-4.11.x-perl.req-skip-my-var-block.patch
+Patch182: rpm-4.11.x-verify-data-range.patch
 
 # Filter soname dependencies by name
 Patch200: rpm-4.11.x-filter-soname-deps.patch
@@ -101,6 +106,7 @@ Patch310: rpm-4.11.x-CVE-2014-8118.patch
 Patch311: rpm-4.11.3-update-config.guess.patch
 Patch312: rpm-4.11.x-man-systemd-inhibit.patch
 Patch313: rpm-4.11.x-quiet-signing.patch
+Patch314: rpm-4.11.x-export-verifysigs-to-python.patch
 
 # Temporary Patch to provide support for updates
 Patch400: rpm-4.10.90-rpmlib-filesystem-check.patch
@@ -324,7 +330,11 @@ Requires: rpm-libs%{_isa} = %{version}-%{release}
 %patch175 -p1 -b .py_size_test
 %patch176 -p1 -b .noplugins
 %patch177 -p1 -b .noconfig
-
+%patch178 -p1 -b .offbyone
+%patch179 -p1 -b .sourceslua
+%patch180 -p1 -b .hdrrefcnt
+%patch181 -p1 -b .perlblock
+%patch182 -p1 -b .verifysignature
 
 %patch200 -p1 -b .filter-soname-deps
 %patch201 -p1 -b .dont-filter-ld64
@@ -341,6 +351,7 @@ Requires: rpm-libs%{_isa} = %{version}-%{release}
 %patch311 -p1 -b .config.guess
 %patch312 -p1 -b .man-inhibit
 %patch313 -p1 -b .quiet-sign
+%patch314 -p1 -b .verifysig
 
 %patch400 -p1 -b .rpmlib-filesystem-check
 %patch401 -p1 -b .disable-collection-plugins
@@ -482,7 +493,6 @@ exit 0
 %{_bindir}/rpmverify
 
 %{_mandir}/man8/rpm.8*
-%{_mandir}/man8/rpm-plugin-systemd-inhibit.8*
 %{_mandir}/man8/rpmdb.8*
 %{_mandir}/man8/rpmkeys.8*
 %{_mandir}/man8/rpm2cpio.8*
@@ -521,6 +531,7 @@ exit 0
 %files plugin-systemd-inhibit
 %{_libdir}/rpm-plugins
 %{_libdir}/rpm-plugins/systemd_inhibit.so
+%{_mandir}/man8/rpm-plugin-systemd-inhibit.8*
 %endif
 
 %files build-libs
@@ -582,6 +593,22 @@ exit 0
 %doc COPYING doc/librpm/html/*
 
 %changelog
+* Fri Mar 17 2017 Panu Matilainen <pmatilai@redhat.com> - 4.11.3-25
+- Really fix #1371487
+
+* Thu Mar 16 2017 Florian Festi <ffesti@redhat.com> - 4.11.3-24
+- Fix include in patch for #1343692
+- Disable patch for (#1371487) temporarily
+
+* Mon Mar 13 2017 Florian Festi <ffesti@redhat.com> - 4.11.3-22
+- Move rpm-plugin-systemd-inhibit man page to that package (#1360706)
+- Fix off by one error in base64 code (#1341913)
+- Add sources to lua to prevent %%autosetup failing in some cases (#1359084)
+- Fix refcounting for Python hdr objects (#1358467)
+- Perl dependecy generator: Skip blocks after variable definitions (#1378307)
+- Verify signatures properly (#1371487)
+- Export function in Python binding for yum (#1343692)
+
 * Tue Jul 26 2016 Florian Festi <ffesti@redhat.com> - 4.11.3-21
 - Fix --sign for rpmbuild with --quiet (#1293483)
 - Adjusted fix for --noplugins option (#1264031)
