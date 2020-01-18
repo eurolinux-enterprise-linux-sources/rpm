@@ -21,7 +21,7 @@
 Summary: The RPM package management system
 Name: rpm
 Version: %{rpmver}
-Release: %{?snapver:0.%{snapver}.}25%{?dist}
+Release: %{?snapver:0.%{snapver}.}32%{?dist}
 Group: System Environment/Base
 Url: http://www.rpm.org/
 Source0: http://rpm.org/releases/rpm-4.11.x/%{name}-%{srcver}.tar.bz2
@@ -82,6 +82,12 @@ Patch179: rpm-4.11.x-sources-to-lua-variables.patch
 Patch180: rpm-4.11.x-Fix-Python-hdr-refcount.patch
 Patch181: rpm-4.11.x-perl.req-skip-my-var-block.patch
 Patch182: rpm-4.11.x-verify-data-range.patch
+Patch183: rpm-4.13.x-writable-tmp-dir.patch
+Patch184: rpm-4.13.x-increase_header_size.patch
+Patch185: rpm-4.13.x-Make-the-stftime-buffer-big-enuff.patch
+Patch186: rpm-4.11.x-skipattr.patch
+Patch187: rpm-4.13.x-Implement-noconfig-query.patch
+Patch188: rpm-4.11.x-weakdep-tags.patch
 
 # Filter soname dependencies by name
 Patch200: rpm-4.11.x-filter-soname-deps.patch
@@ -114,6 +120,15 @@ Patch400: rpm-4.10.90-rpmlib-filesystem-check.patch
 Patch401: rpm-4.11.3-disable-collection-plugins.patch
 # Remove EVR check
 Patch402: rpm-4.11.3-EVR-validity-check.patch
+
+# Backport of RPMCALLBACK_ELEM_PROGRESS
+# https://bugzilla.redhat.com/show_bug.cgi?id=1466649
+Patch501: rpm-4.11.x-elem-progress.patch
+# Make header to be available for RPMCALLBACK_ELEM_PROGRESS
+Patch502: rpm-4.13.x-RPMCALLBACK_ELEM_PROGRESS-available-header.patch
+# Backport of reinstall functionality from 4.12
+# https://bugzilla.redhat.com/show_bug.cgi?id=1466650
+Patch503: rpm-4.11.x-reinstall.patch
 
 # Partially GPL/LGPL dual-licensed and some bits with BSD
 # SourceLicense: (GPLv2+ and LGPLv2+ with exceptions) and BSD 
@@ -335,6 +350,12 @@ Requires: rpm-libs%{_isa} = %{version}-%{release}
 %patch180 -p1 -b .hdrrefcnt
 %patch181 -p1 -b .perlblock
 %patch182 -p1 -b .verifysignature
+%patch183 -p1 -b .writable_tmp
+%patch184 -p1 -b .hdr_size
+%patch185 -p1 -b .strtime
+%patch186 -p1 -b .skipattr
+%patch187 -p1 -b .noconfig-cli
+%patch188 -p1 -b .weakdep-tags
 
 %patch200 -p1 -b .filter-soname-deps
 %patch201 -p1 -b .dont-filter-ld64
@@ -362,6 +383,10 @@ Requires: rpm-libs%{_isa} = %{version}-%{release}
 %ifnarch armv3l armv4b armv4l armv4tl armv5tel armv5tejl armv6l armv7l
 %patch6 -p1 -b .armhfp-logic
 %endif
+
+%patch501 -p1 -b .elem-progress
+%patch502 -p1 -b .elem-progress-header
+%patch503 -p1 -b .reinstall
 
 %if %{with int_bdb}
 ln -s db-%{bdbver} db
@@ -593,6 +618,32 @@ exit 0
 %doc COPYING doc/librpm/html/*
 
 %changelog
+* Mon Nov 13 2017 Panu Matilainen <pmatilai@redhat.com> - 4.11.3-32
+- Backport weak dependency tag definitions (#1508538)
+
+* Mon Oct 30 2017 Panu Matilainen <pmatilai@redhat.com> - 4.11.3-31
+- Backport missing infra for --noconfig option (#1406611)
+- As a side-effect, this also makes --noghost work as intended
+
+* Fri Oct 13 2017 Florian Festi <ffesti@redhat.com> - 4.11.3-30
+- Respin to fix changelog
+
+* Fri Oct 13 2017 Florian Festi <ffesti@redhat.com> - 4.11.3-29
+- Fix coverity warnings in patch for #1441098
+
+* Mon Oct 09 2017 Florian Festi <ffesti@redhat.com> - 4.11.3-28
+- Make sure files in /usr/src/debug are not world writable (RHBZ #1441098)
+- Increase maximal header size (RHBZ #1434656)
+- Increase buffer to be able to render Korean dates (RHBZ #1425231)
+- Add --noconfig option (RHBZ #1406611)
+
+* Wed Aug 23 2017 Igor Gnatenko <ignatenko@redhat.com> - 4.11.3-27
+- Make header available from RPMCALLBACK_ELEM_PROGRESS (RHBZ #1466649)
+
+* Wed Aug 02 2017 Igor Gnatenko <ignatenko@redhat.com> - 4.11.3-26
+- Backport RPMCALLBACK_ELEM_PROGRESS (RHBZ #1466649)
+- Backport reinstall feature (RHBZ #1466650)
+
 * Fri Mar 17 2017 Panu Matilainen <pmatilai@redhat.com> - 4.11.3-25
 - Really fix #1371487
 
